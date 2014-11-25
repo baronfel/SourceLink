@@ -16,7 +16,15 @@ let buildDate =
 let cfg = getBuildConfig __SOURCE_DIRECTORY__
 let revision =
     use repo = new GitRepo(__SOURCE_DIRECTORY__)
-    repo.Revision
+    repo.Commit
+
+type AppVeyorEnvironment with
+    static member IsRepoTag = environVar "APPVEYOR_REPO_TAG" = "True"
+
+let isAppVeyorBuild = buildServer = BuildServer.AppVeyor
+let hasRepoVersionTag = isAppVeyorBuild && AppVeyorEnvironment.IsRepoTag && AppVeyorEnvironment.RepoBranch.StartsWith "v"
+
+let release = ReleaseNotesHelper.LoadReleaseNotes "RELEASE_NOTES.md"
 
 type AppVeyorEnvironment with
     static member IsRepoTag = environVar "APPVEYOR_REPO_TAG" = "True"
@@ -79,6 +87,7 @@ Target "SourceLink" (fun _ ->
         repo.VerifyChecksums files
         p.VerifyPdbChecksums files
         p.CreateSrcSrv "https://raw.githubusercontent.com/ctaggart/SourceLink/{0}/%var2%" repo.Revision (repo.Paths files)
+        p.CreateSrcSrv "https://raw.githubusercontent.com/ctaggart/SourceLink/{0}/%var2%" repo.Commit (repo.Paths files)
         Pdbstr.exec pdbToIndex p.OutputFilePdbSrcSrv
     sourceIndex "Tfs/Tfs.fsproj" None 
     sourceIndex "SourceLink/SourceLink.fsproj" None
